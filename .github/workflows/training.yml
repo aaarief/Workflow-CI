@@ -1,0 +1,22 @@
+name: Model Training CI
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.9'
+    - name: Install dependencies
+      run: |
+        pip install mlflow pandas scikit-learn matplotlib seaborn
+    - name: Train Model
+      run: |
+        cd Workflow-CI/MLProject
+        python modelling.py
