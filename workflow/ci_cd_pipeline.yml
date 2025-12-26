@@ -36,11 +36,12 @@ jobs:
 
     - name: Run MLflow Project (Training)
       run: |
-        # PERBAIKAN: Langsung masuk ke MLProject (karena ini repo baru)
+        # Masuk ke folder project
         cd MLProject
         
-        # Jalankan training langsung dengan python (lebih stabil di CI)
-        python modelling.py
+        # Jalankan menggunakan mlflow run
+        # --env-manager=local agar menggunakan environment CI yang sudah diinstall dependencies-nya
+        mlflow run . --env-manager=local
 
     - name: Login to Docker Hub
       uses: docker/login-action@v2
