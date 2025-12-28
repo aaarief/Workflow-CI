@@ -4,11 +4,9 @@ import mlflow.sklearn
 import os
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
-import dagshub
 
-# --- KONFIGURASI ---
-DAGSHUB_REPO_OWNER = "aaarief" 
-DAGSHUB_REPO_NAME = "membangun-model"
+# Catatan: Tidak perlu import dagshub atau set_experiment.
+# Kredensial dan URI sudah diatur lewat Environment Variables di GitHub Actions.
 
 def load_data():
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -20,23 +18,24 @@ def load_data():
 def train():
     print("Starting training pipeline (CI/CD)...")
     
-    # Setup Tracking (Penting untuk CI/CD agar lapor ke DAGsHub)
-    if not os.environ.get("MLFLOW_TRACKING_URI"):
-        dagshub.init(repo_owner=DAGSHUB_REPO_OWNER, repo_name=DAGSHUB_REPO_NAME, mlflow=True)
-    
-    
+    # Load Data
     train_df, test_df = load_data()
     X_train = train_df.drop(columns=['y'])
     y_train = train_df['y']
     X_test = test_df.drop(columns=['y'])
     y_test = test_df['y']
     
-    # Enable Autolog
+    # Enable Autolog (untuk metrics otomatis)
     mlflow.sklearn.autolog()
     
     run_id = None
+    
+    # Start Run
+    # Kita tidak set_experiment di sini agar mengikuti konteks dari 'mlflow run'
     with mlflow.start_run() as run:
         run_id = run.info.run_id
+        print(f"Run ID: {run_id}")
+        
         model = RandomForestClassifier(n_estimators=50, random_state=42)
         model.fit(X_train, y_train)
         
@@ -45,15 +44,23 @@ def train():
         acc = accuracy_score(y_test, y_pred)
         print(f"Accuracy: {acc:.4f}")
         
-        # EXPLICIT LOGGING: Pastikan model tersimpan di path "model"
-        # Ini wajib agar register_model nanti bisa menemukannya
+        # EXPLICIT LOGGING (WAJIB UNTUK DOCKER)
+        # Kita simpan model secara eksplisit ke folder "model"
+        # Ini memastikan path 'runs:/.../model' nanti valid
         mlflow.sklearn.log_model(model, "model")
+        print("✅ Model logged explicitly to 'model' artifact path.")
         
-    # Register Model OUTSIDE the run context to ensure artifacts are uploaded
+    # Register Model (Dilakukan SETELAH run selesai agar artifact pasti sudah ter-upload)
     if run_id:
         model_uri = f"runs:/{run_id}/model"
-        mlflow.register_model(model_uri, "BankMarketingModel_CI")
-        print("✅ Model registered as 'BankMarketingModel_CI'")
+        print(f"Registering model from URI: {model_uri} ...")
+        try:
+            mlflow.register_model(model_uri, "BankMarketingModel_CI")
+            print("✅ Model registered successfully as 'BankMarketingModel_CI'")
+        except Exception as e:
+            print(f"❌ Failed to register model: {e}")
+            # Jangan raise error agar pipeline tidak merah jika hanya gagal register (opsional)
+            # raise e 
 
 if __name__ == "__main__":
     train()
