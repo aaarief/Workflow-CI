@@ -34,7 +34,9 @@ def train():
     # Enable Autolog
     mlflow.sklearn.autolog()
     
+    run_id = None
     with mlflow.start_run() as run:
+        run_id = run.info.run_id
         model = RandomForestClassifier(n_estimators=50, random_state=42)
         model.fit(X_train, y_train)
         
@@ -43,8 +45,9 @@ def train():
         acc = accuracy_score(y_test, y_pred)
         print(f"Accuracy: {acc:.4f}")
         
-        # Register Model untuk keperluan Docker
-        model_uri = f"runs:/{run.info.run_id}/model"
+    # Register Model OUTSIDE the run context to ensure artifacts are uploaded
+    if run_id:
+        model_uri = f"runs:/{run_id}/model"
         mlflow.register_model(model_uri, "BankMarketingModel_CI")
         print("✅ Model registered as 'BankMarketingModel_CI'")
 
