@@ -45,6 +45,10 @@ def train():
         acc = accuracy_score(y_test, y_pred)
         print(f"Accuracy: {acc:.4f}")
         
+        # EXPLICIT LOGGING: Pastikan model tersimpan di path "model"
+        # Ini wajib agar register_model nanti bisa menemukannya
+        mlflow.sklearn.log_model(model, "model")
+        
     # Register Model OUTSIDE the run context to ensure artifacts are uploaded
     if run_id:
         model_uri = f"runs:/{run_id}/model"
