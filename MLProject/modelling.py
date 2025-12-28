@@ -24,7 +24,6 @@ def train():
     if not os.environ.get("MLFLOW_TRACKING_URI"):
         dagshub.init(repo_owner=DAGSHUB_REPO_OWNER, repo_name=DAGSHUB_REPO_NAME, mlflow=True)
     
-    mlflow.set_experiment("Bank Marketing CI/CD Pipeline")
     
     train_df, test_df = load_data()
     X_train = train_df.drop(columns=['y'])
